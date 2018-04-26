@@ -10,6 +10,7 @@ import me.yokeyword.fragmentation.ExtraTransaction;
 import me.yokeyword.fragmentation.ISupportActivity;
 import me.yokeyword.fragmentation.ISupportFragment;
 import me.yokeyword.fragmentation.SupportActivityDelegate;
+import me.yokeyword.fragmentation.SupportFragment;
 import me.yokeyword.fragmentation.SupportHelper;
 import me.yokeyword.fragmentation.anim.FragmentAnimator;
 
@@ -110,6 +111,18 @@ public class MySupportActivity extends AppCompatActivity implements ISupportActi
         return mDelegate.onCreateFragmentAnimator();
     }
 
+    /**
+     * Causes the Runnable r to be added to the action queue.
+     * <p>
+     * The runnable will be run after all the previous action has been run.
+     * <p>
+     * 前面的事务全部执行后 执行该Action
+     */
+    @Override
+    public void post(Runnable runnable) {
+        mDelegate.post(runnable);
+    }
+
     /****************************************以下为可选方法(Optional methods)******************************************************/
 
     // 选择性拓展其他方法
@@ -127,6 +140,17 @@ public class MySupportActivity extends AppCompatActivity implements ISupportActi
      */
     public void start(ISupportFragment toFragment, @ISupportFragment.LaunchMode int launchMode) {
         mDelegate.start(toFragment, launchMode);
+    }
+
+    /**
+     * It is recommended to use {@link SupportFragment#startWithPopTo(ISupportFragment, Class, boolean)}.
+     *
+     * @see #popTo(Class, boolean)
+     * +
+     * @see #start(ISupportFragment)
+     */
+    public void startWithPopTo(ISupportFragment toFragment, Class<?> targetFragmentClass, boolean includeTargetFragment) {
+        mDelegate.startWithPopTo(toFragment, targetFragmentClass, includeTargetFragment);
     }
 
     /**

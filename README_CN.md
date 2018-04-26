@@ -21,7 +21,7 @@ A powerful library that manage Fragment for Android!
 # Demo演示：
 均为单Activity + 多Fragment，第一个为简单流式demo，第二个为仿微信交互的demo(全页面支持滑动退出)，第三个为仿知乎交互的复杂嵌套demo
 
-[下载APK](https://www.pgyer.com/fragmentation)
+## [下载APK](https://www.pgyer.com/fragmentation)
 
 
 <img src="/gif/demo1.gif" width="280px"/> <img src="/gif/demo2.gif" width="280px"/>
@@ -29,19 +29,21 @@ A powerful library that manage Fragment for Android!
 
 # 特性
 
-1、**可以快速开发出各种嵌套设计的Fragment App**
+1、**悬浮球／摇一摇实时查看Fragment的栈视图，降低开发难度**
 
-2、**悬浮球／摇一摇实时查看Fragment的栈视图Dialog，降低开发难度**
+2、**内部队列机制 解决Fragment多点触控、事务高频次提交异常等问题**
 
-3、**增加启动模式、startForResult等类似Activity方法**
+3、**增加启动模式、startForResult等类Activity方法**
 
-4、**类似Android事件分发机制的Fragment回退方法：onBackPressedSupport()，轻松为每个Fragment实现Back按键事件**
+4、**类Android事件分发机制的Fragment BACK键机制：onBackPressedSupport()**
 
-5、**提供onSupportVisible()等生命周期方法，简化嵌套Fragment的开发过程； 提供统一的onLazyInitView()懒加载方法**
+5、**提供onSupportVisible()、懒加载onLazyInitView()等生命周期方法，简化嵌套Fragment的开发过程**
 
-6、**提供 Fragment转场动画 系列解决方案，动态更换动画**
+6、**提供 Fragment转场动画 系列解决方案，动态改变动画**
 
-7、**支持SwipeBack滑动边缘退出(需要使用Fragment｀ation_SwipeBack库,详情[README](https://github.com/YoKeyword/Fragmentation/blob/master/fragmentation_swipeback/README.md))**
+7、**提供Activity作用域的EventBus辅助类，Fragment通信更简单、独立(需要使用[EventBusActivityScope库](https://github.com/YoKeyword/Fragmentation/blob/master/eventbus_activity_scope/README.md))**
+
+8、**支持SwipeBack滑动边缘退出(需要使用[Fragmentation_SwipeBack库](https://github.com/YoKeyword/Fragmentation/blob/master/fragmentation_swipeback/README.md))**
 
 <img src="/gif/stack.png" width="150px"/> <img src="/gif/log.png" width="300px"/>     <img src="/gif/SwipeBack.png" width="150px"/>
 
@@ -50,18 +52,23 @@ A powerful library that manage Fragment for Android!
 **1. 项目下app的build.gradle中依赖：**
 ````gradle
 // appcompat-v7包是必须的
-compile 'me.yokeyword:fragmentation:1.1.6'
+compile 'me.yokeyword:fragmentation:1.3.3'
 
 // 如果不想继承SupportActivity/Fragment，自己定制Support，可仅依赖:
-// compile 'me.yokeyword:fragmentation-core:1.1.6'
+// compile 'me.yokeyword:fragmentation-core:1.3.3'
 
 // 如果想使用SwipeBack 滑动边缘退出Fragment/Activity功能，完整的添加规则如下：
-compile 'me.yokeyword:fragmentation:1.1.6'
+compile 'me.yokeyword:fragmentation:1.3.3'
 // swipeback基于fragmentation, 如果是自定制SupportActivity/Fragment，则参照SwipeBackActivity/Fragment实现即可
-compile 'me.yokeyword:fragmentation-swipeback:1.1.6'
+compile 'me.yokeyword:fragmentation-swipeback:1.3.3'
+
+// Activity作用域的EventBus，更安全，可有效避免after onSavenInstanceState()异常
+compile 'me.yokeyword:eventbus-activity-scope:1.1.0'
+// Your EventBus's version
+compile 'org.greenrobot:eventbus:{version}'
 ````
 
-**2. Activity继承SupportActivity：**
+**2. Activity `extends` SupportActivity或者 `implements` ISupportActivity：(实现方式可参考[MySupportActivity](https://github.com/YoKeyword/Fragmentation/blob/master/demo/src/main/java/me/yokeyword/sample/demo_flow/base/MySupportActivity.java))**
 ````java
 // v1.0.0开始，不强制继承SupportActivity，可使用接口＋委托形式来实现自己的SupportActivity
 public class MainActivity extends SupportActivity {
@@ -84,7 +91,7 @@ public class MainActivity extends SupportActivity {
     }
 ````
 
-**3. Fragment继承SupportFragment：**
+**3. Fragment `extends` SupportFragment或者 `implements` ISupportFragment：(实现方式可参考[MySupportFragment](https://github.com/YoKeyword/Fragmentation/blob/master/demo/src/main/java/me/yokeyword/sample/demo_flow/base/MySupportFragment.java))：**
 ````java
 // v1.0.0开始，不强制继承SupportFragment，可使用接口＋委托形式来实现自己的SupportFragment
 public class HomeFragment extends SupportFragment {
@@ -95,11 +102,6 @@ public class HomeFragment extends SupportFragment {
         // ... 其他pop, find, 设置动画等等API, 请自行查看WIKI
     }
 }
-````
-
-**4. 在不需要多点触控的页面上，通过theme(或其他方式)关闭多点触控**
-````xml
-<item name="android:splitMotionEvents">false</item>
 ````
 
 ## [进一步使用、ChangeLog，查看wiki](https://github.com/YoKeyword/Fragmentation/wiki)

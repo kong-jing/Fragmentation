@@ -39,6 +39,14 @@ public class SwipeBackActivityDelegate {
         mSwipeBackLayout.setEnableGesture(enable);
     }
 
+    public void setEdgeLevel(SwipeBackLayout.EdgeLevel edgeLevel) {
+        mSwipeBackLayout.setEdgeLevel(edgeLevel);
+    }
+
+    public void setEdgeLevel(int widthPixel) {
+        mSwipeBackLayout.setEdgeLevel(widthPixel);
+    }
+
     /**
      * 限制SwipeBack的条件,默认栈内Fragment数 <= 1时 , 优先滑动退出Activity , 而不是Fragment
      *
@@ -50,7 +58,7 @@ public class SwipeBackActivityDelegate {
 
     private void onActivityCreate() {
         mActivity.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        mActivity.getWindow().getDecorView().setBackgroundDrawable(null);
+        mActivity.getWindow().getDecorView().setBackgroundColor(Color.TRANSPARENT);
         mSwipeBackLayout = new SwipeBackLayout(mActivity);
         ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
         mSwipeBackLayout.setLayoutParams(params);

@@ -8,17 +8,20 @@ import android.graphics.drawable.Drawable;
 import android.support.annotation.IntDef;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
-import android.support.v4.app.FragmentationHack;
+import android.support.v4.app.FragmentationMagician;
 import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.ViewDragHelper;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.FrameLayout;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -61,6 +64,11 @@ public class SwipeBackLayout extends FrameLayout {
      */
     public static final int STATE_SETTLING = ViewDragHelper.STATE_SETTLING;
 
+    /**
+     * A view is currently drag finished.
+     */
+    public static final int STATE_FINISHED = 3;
+
     private static final int DEFAULT_SCRIM_COLOR = 0x99000000;
     private static final float DEFAULT_PARALLAX = 0.33f;
     private static final int FULL_ALPHA = 255;
@@ -100,6 +108,12 @@ public class SwipeBackLayout extends FrameLayout {
      */
     private List<OnSwipeListener> mListeners;
 
+    private Context mContext;
+
+    public enum EdgeLevel {
+        MAX, MIN, MED
+    }
+
     public SwipeBackLayout(Context context) {
         this(context, null);
     }
@@ -110,6 +124,7 @@ public class SwipeBackLayout extends FrameLayout {
 
     public SwipeBackLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        this.mContext = context;
         init();
     }
 
@@ -117,6 +132,13 @@ public class SwipeBackLayout extends FrameLayout {
         mHelper = ViewDragHelper.create(this, new ViewDragCallback());
         setShadow(me.yokeyword.fragmentation_swipeback.R.drawable.shadow_left, EDGE_LEFT);
         setEdgeOrientation(EDGE_LEFT);
+    }
+
+    /**
+     * Get ViewDragHelper
+     */
+    public ViewDragHelper getViewDragHelper() {
+        return mHelper;
     }
 
     /**
@@ -211,6 +233,7 @@ public class SwipeBackLayout extends FrameLayout {
          * @see #STATE_IDLE
          * @see #STATE_DRAGGING
          * @see #STATE_SETTLING
+         * @see #STATE_FINISHED
          */
         void onDragStateChange(int state);
 
@@ -358,6 +381,39 @@ public class SwipeBackLayout extends FrameLayout {
         mEnable = enable;
     }
 
+    public void setEdgeLevel(EdgeLevel edgeLevel) {
+        validateEdgeLevel(-1, edgeLevel);
+    }
+
+    public void setEdgeLevel(int widthPixel) {
+        validateEdgeLevel(widthPixel, null);
+    }
+
+    private void validateEdgeLevel(int widthPixel, EdgeLevel edgeLevel) {
+        try {
+            DisplayMetrics metrics = new DisplayMetrics();
+            WindowManager windowManager = (WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE);
+            windowManager.getDefaultDisplay().getMetrics(metrics);
+            Field mEdgeSize = mHelper.getClass().getDeclaredField("mEdgeSize");
+            mEdgeSize.setAccessible(true);
+            if (widthPixel >= 0) {
+                mEdgeSize.setInt(mHelper, widthPixel);
+            } else {
+                if (edgeLevel == EdgeLevel.MAX) {
+                    mEdgeSize.setInt(mHelper, metrics.widthPixels);
+                } else if (edgeLevel == EdgeLevel.MED) {
+                    mEdgeSize.setInt(mHelper, metrics.widthPixels / 2);
+                } else {
+                    mEdgeSize.setInt(mHelper, ((int) (20 * metrics.density + 0.5f)));
+                }
+            }
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
     private class ViewDragCallback extends ViewDragHelper.Callback {
 
         @Override
@@ -370,7 +426,7 @@ public class SwipeBackLayout extends FrameLayout {
                     mCurrentSwipeOrientation = EDGE_RIGHT;
                 }
 
-                if (mListeners != null && !mListeners.isEmpty()) {
+                if (mListeners != null) {
                     for (OnSwipeListener listener : mListeners) {
                         listener.onEdgeTouch(mCurrentSwipeOrientation);
                     }
@@ -378,7 +434,7 @@ public class SwipeBackLayout extends FrameLayout {
 
                 if (mPreFragment == null) {
                     if (mFragment != null) {
-                        List<Fragment> fragmentList = FragmentationHack.getActiveFragments(((Fragment) mFragment).getFragmentManager());
+                        List<Fragment> fragmentList = FragmentationMagician.getActiveFragments(((Fragment) mFragment).getFragmentManager());
                         if (fragmentList != null && fragmentList.size() > 1) {
                             int index = fragmentList.indexOf(mFragment);
                             for (int i = index - 1; i >= 0; i--) {
@@ -425,8 +481,7 @@ public class SwipeBackLayout extends FrameLayout {
             mContentTop = top;
             invalidate();
 
-            if (mListeners != null && !mListeners.isEmpty()
-                    && mHelper.getViewDragState() == STATE_DRAGGING && mScrollPercent <= 1 && mScrollPercent > 0) {
+            if (mListeners != null && mHelper.getViewDragState() == STATE_DRAGGING && mScrollPercent <= 1 && mScrollPercent > 0) {
                 for (OnSwipeListener listener : mListeners) {
                     listener.onDragScrolled(mScrollPercent);
                 }
@@ -436,20 +491,13 @@ public class SwipeBackLayout extends FrameLayout {
                 if (mFragment != null) {
                     if (mCallOnDestroyView) return;
 
-                    if (mPreFragment instanceof ISupportFragment) {
-                        ((ISupportFragment) mPreFragment).getSupportDelegate().mLockAnim = true;
-                    }
                     if (!((Fragment) mFragment).isDetached()) {
-                        mFragment.getSupportDelegate().mLockAnim = true;
-                        mFragment.getSupportDelegate().pop();
-                        ((Fragment) mFragment).getFragmentManager().executePendingTransactions();
-                        mFragment.getSupportDelegate().mLockAnim = false;
-                    }
-                    if (mPreFragment instanceof ISupportFragment) {
-                        ((ISupportFragment) mPreFragment).getSupportDelegate().mLockAnim = false;
+                        onDragFinished();
+                        mFragment.getSupportDelegate().popQuiet();
                     }
                 } else {
                     if (!mActivity.isFinishing()) {
+                        onDragFinished();
                         mActivity.finish();
                         mActivity.overridePendingTransition(0, 0);
                     }
@@ -488,7 +536,7 @@ public class SwipeBackLayout extends FrameLayout {
         @Override
         public void onViewDragStateChanged(int state) {
             super.onViewDragStateChanged(state);
-            if (mListeners != null && !mListeners.isEmpty()) {
+            if (mListeners != null) {
                 for (OnSwipeListener listener : mListeners) {
                     listener.onDragStateChange(state);
                 }
@@ -500,6 +548,14 @@ public class SwipeBackLayout extends FrameLayout {
             super.onEdgeTouched(edgeFlags, pointerId);
             if ((mEdgeFlag & edgeFlags) != 0) {
                 mCurrentSwipeOrientation = edgeFlags;
+            }
+        }
+    }
+
+    private void onDragFinished() {
+        if (mListeners != null) {
+            for (OnSwipeListener listener : mListeners) {
+                listener.onDragStateChange(STATE_FINISHED);
             }
         }
     }
@@ -517,7 +573,7 @@ public class SwipeBackLayout extends FrameLayout {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-    	if (!mEnable) return super.onTouchEvent(event);
+        if (!mEnable) return super.onTouchEvent(event);
         try {
             mHelper.processTouchEvent(event);
             return true;

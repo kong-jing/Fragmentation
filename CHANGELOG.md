@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0
+Added `startWithPopTo()`, Improve the stability of `pop()`/`popTo()`.
+
+## 1.2.0
+Added ActionQueue mechanism, this will improve stability.
+
 ## 1.0.0
 
 1. Extends of SupportActivity/SupportFragment is no longer a forced requirement. Through `implements ISupportActivity/Fragment` ＋ `Delegate` to customize self-difined `SupportActivity/Fragment`
